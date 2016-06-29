@@ -11,22 +11,29 @@ struct GraphReader<T: BufRead> {
 
 impl<T: BufRead> GraphReader<T> {
     fn new(mut reader: T) -> GraphReader<T> {
-        let mut buffer = String::new();
-        reader.read_line(&mut buffer).unwrap();
-        let dim: Vec<usize> = buffer.split_whitespace().map(|s| s.parse().unwrap()).collect();
-        GraphReader { buf: reader, vertices: dim[0], edges: dim[1] }
+        let dim = GraphReader::next_tuple(&mut reader);
+        let v = dim.0.parse().unwrap();
+        let e = dim.1.parse().unwrap();
+        GraphReader { buf: reader, vertices: v, edges: e }
     }
 
-    fn adjacencies(self) -> HashMap<String, Vec<String>> {
+    fn next_tuple(buf: &mut T) -> (String, String) {
+        let mut buffer = String::new();
+        buf.read_line(&mut buffer).unwrap();
+        let mut iter = buffer.split_whitespace();
+        (iter.next().unwrap().to_string(), iter.next().unwrap().to_string())
+    }
+
+    fn adjacencies(&mut self) -> HashMap<String, Vec<String>> {
         let mut graph = HashMap::new();
-        for line in self.buf.lines().take(self.edges).map(|s| s.unwrap()) {
-            let edge: Vec<&str> = line.split_whitespace().collect();
-            let vertex = edge[0].to_string();
-            let neighbor = edge[1].to_string();
-            if !graph.contains_key(&vertex) {
-                graph.insert(vertex, vec![neighbor]);
+        for _ in 0..self.edges { 
+            let vertices = GraphReader::next_tuple(&mut self.buf);
+            let a = vertices.0.to_string();
+            let b = vertices.1.to_string();
+            if !graph.contains_key(&a) {
+                graph.insert(a, vec![b]);
             } else {
-                graph.get_mut(&vertex).unwrap().push(neighbor);
+                graph.get_mut(&a).unwrap().push(b);
             }
         }
         graph
@@ -36,7 +43,7 @@ impl<T: BufRead> GraphReader<T> {
 fn main() {
     let filename = "graph.txt";
     let file = File::open(filename).unwrap();
-    let graph = GraphReader::new(BufReader::new(&file));
+    let mut graph = GraphReader::new(BufReader::new(&file));
     let adj = graph.adjacencies();
     for (vertex, neighbors) in adj {
         println!("node {}:", vertex);
