@@ -1,54 +1,45 @@
 use std::fs::File;
 use std::io::BufReader;
 use std::io::BufRead;
-use std::collections::HashMap;
+// use std::collections::HashMap;
 
-struct GraphReader<T: BufRead> {
-    buf: T,
-    vertices: usize,
-    edges: usize,
+trait TupleReader {
+    fn next_tuple(&mut self) -> (u32, u32);
 }
 
-impl<T: BufRead> GraphReader<T> {
-    fn new(mut reader: T) -> GraphReader<T> {
-        let dim = GraphReader::next_tuple(&mut reader);
-        let v = dim.0.parse().unwrap();
-        let e = dim.1.parse().unwrap();
-        GraphReader { buf: reader, vertices: v, edges: e }
-    }
-
-    fn next_tuple(buf: &mut T) -> (String, String) {
+impl<T: BufRead> TupleReader for T {
+    fn next_tuple(&mut self) -> (u32, u32) {
         let mut buffer = String::new();
-        buf.read_line(&mut buffer).unwrap();
-        let mut iter = buffer.split_whitespace();
-        (iter.next().unwrap().to_string(), iter.next().unwrap().to_string())
+        self.read_line(&mut buffer).unwrap();
+        let mut iter = buffer.split_whitespace().map(|s| s.parse().unwrap()).take(2);
+        (iter.next().unwrap(), iter.next().unwrap())
+    }
+}
+
+#[derive(Debug)]
+struct Graph {
+    edges: Vec<(u32, u32)>
+}
+
+impl Graph {
+    fn load<T: TupleReader>(reader: &mut T) -> Graph {
+        let (_, e) = reader.next_tuple();
+        let mut edges = vec![];
+        for _ in 0..e { 
+            let edge = reader.next_tuple();
+            edges.push(edge)
+        }
+        Graph { edges: edges }
     }
 
-    fn adjacencies(&mut self) -> HashMap<String, Vec<String>> {
-        let mut graph = HashMap::new();
-        for _ in 0..self.edges { 
-            let vertices = GraphReader::next_tuple(&mut self.buf);
-            let a = vertices.0.to_string();
-            let b = vertices.1.to_string();
-            if !graph.contains_key(&a) {
-                graph.insert(a, vec![b]);
-            } else {
-                graph.get_mut(&a).unwrap().push(b);
-            }
-        }
-        graph
-    }
 }
 
 fn main() {
     let filename = "graph.txt";
     let file = File::open(filename).unwrap();
-    let mut graph = GraphReader::new(BufReader::new(&file));
-    let adj = graph.adjacencies();
-    for (vertex, neighbors) in adj {
-        println!("node {}:", vertex);
-        for n in neighbors {
-            println!("\t{} -> {}", vertex, n);
-        }
-    }
+    let mut reader = BufReader::new(&file);
+    let graph = Graph::load(&mut reader);
+    println!("{:?}", graph);
+    let (from, to) = reader.next_tuple();
+    println!("Checking reachability {} -> {}", from, to);
 }
