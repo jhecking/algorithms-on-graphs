@@ -2,6 +2,7 @@ use std::fs::File;
 use std::io::BufReader;
 use std::io::BufRead;
 use std::collections::HashMap;
+use std::collections::HashSet;
 
 trait TupleReader {
     fn next_tuple(&mut self) -> (u32, u32);
@@ -16,11 +17,12 @@ impl<T: BufRead> TupleReader for T {
     }
 }
 
+type Vertex = u32;
 type Adjacencies = HashMap<u32, Vec<u32>>;
 
 #[derive(Debug)]
 struct Graph {
-    edges: Vec<(u32, u32)>
+    edges: Vec<(Vertex, Vertex)>
 }
 
 impl Graph {
@@ -44,6 +46,29 @@ impl Graph {
         }
         adj
     }
+
+    fn explore(&self, v: Vertex) -> HashSet<Vertex> {
+        fn visit(adj: &Adjacencies, visited: &mut HashSet<Vertex>, v: Vertex) {
+            visited.insert(v);
+            if let Some(adjacent) = adj.get(&v) {
+                for w in adjacent {
+                    if !visited.contains(w) {
+                        visit(adj, visited, w.clone());
+                    }
+                }
+            }
+        }
+
+        let adj = self.adjacencies();
+        let mut visited = HashSet::new();
+        visit(&adj, &mut visited, v);
+        visited
+    }
+
+    fn is_reachable(&self, a: Vertex, b: Vertex) -> bool {
+        let visited = self.explore(a);
+        visited.contains(&b)
+    }
 }
 
 fn main() {
@@ -53,7 +78,5 @@ fn main() {
     let graph = Graph::load(&mut reader);
     println!("{:?}", graph);
     let (from, to) = reader.next_tuple();
-    println!("Checking reachability {} -> {}", from, to);
-    let adj = graph.adjacencies();
-    println!("{:?}", adj);
+    println!("Checking reachability {} -> {}: {}", from, to, graph.is_reachable(from, to));
 }
