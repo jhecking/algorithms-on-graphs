@@ -86,8 +86,8 @@ impl Graph {
 }
 
 fn main() {
-    let filename = "graph.txt";
-    let file = File::open(filename).unwrap();
+    let filename = std::env::args().next().expect("Missing filename!");
+    let file = File::open(filename).expect("Cannot open file!");
     let mut reader = BufReader::new(&file);
     let graph = Graph::load(&mut reader);
     println!("{:?}", graph);
