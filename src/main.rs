@@ -23,28 +23,37 @@ impl<T: BufRead> TupleReader for T {
 type Vertex = u32;
 
 // adjacency map contains a list of adjacent vertices for each vertex in the graph
-type Adjacencies = HashMap<u32, Vec<u32>>;
+type Adjacencies = HashMap<Vertex, Vec<Vertex>>;
+
+// list of connected components
+type ConnectedComponents = Vec<Vec<Vertex>>;
 
 // a graph consists of a list of edges
 // TODO: how to represent vertices that do not have any edges?
 #[derive(Debug)]
 struct Graph {
-    edges: Vec<(Vertex, Vertex)>
+    vertices: Vec<Vertex>,
+    edges: Vec<(Vertex, Vertex)>,
 }
 
 impl Graph {
+
+    fn new(vertices: Vec<Vertex>, edges: Vec<(Vertex, Vertex)>) -> Graph {
+        Graph { vertices: vertices, edges: edges }
+    }
 
     // loads a graph from an input stream:
     // first line contains the number of vertices v and edges e
     // next e lines contain pairs of vertices representing the edges of the graph
     fn load<T: TupleReader>(reader: &mut T) -> Graph {
-        let (_, e) = reader.next_tuple();
+        let (v, e) = reader.next_tuple();
+        let vertices = (1..v+1).collect();
         let mut edges = vec![];
         for _ in 0..e { 
             let edge = reader.next_tuple();
             edges.push(edge)
         }
-        Graph { edges: edges }
+        Graph::new(vertices, edges)
     }
 
     // builds the adjacency map for the graph
@@ -59,29 +68,45 @@ impl Graph {
         adj
     }
 
+    // depth first search of the entire graph
+    // returns the set of connected components
+    fn depth_first_search(&self) -> ConnectedComponents {
+        let mut components = vec![];
+        let mut visited = HashSet::new();
+        for v in &self.vertices {
+            if !visited.contains(v) {
+                let mut component = vec![];
+                self.explore(v, &mut visited, &mut component);
+                components.push(component);
+            }
+        }
+        components
+    }
+
     // depth first search of the graph starting at vertex v
     // marks each vertex visited during the search and returns the list of visited vertices
-    fn explore(&self, v: Vertex) -> HashSet<Vertex> {
-        fn visit(adj: &Adjacencies, visited: &mut HashSet<Vertex>, v: &Vertex) {
+    fn explore(&self, v: &Vertex, visited: &mut HashSet<Vertex>, component: &mut Vec<Vertex>) {
+        fn visit(v: &Vertex, adj: &Adjacencies, visited: &mut HashSet<Vertex>, component: &mut Vec<Vertex>) {
             visited.insert(v.clone());
+            component.push(v.clone());
             if let Some(adjacent) = adj.get(v) {
                 for w in adjacent {
                     if !visited.contains(w) {
-                        visit(adj, visited, w);
+                        visit(w, adj, visited, component);
                     }
                 }
             }
         }
 
-        let adj = self.adjacencies();
-        let mut visited = HashSet::new();
-        visit(&adj, &mut visited, &v);
-        visited
+        let adj = &self.adjacencies();
+        visit(&v, &adj, visited, component);
     }
 
     // returns true if vertex w can be reached from vertex v
     fn is_reachable(&self, v: Vertex, w: Vertex) -> bool {
-        let visited = self.explore(v);
+        let mut visited = HashSet::new();
+        let mut component = vec![];
+        self.explore(&v, &mut visited, &mut component);
         visited.contains(&w)
     }
 }
@@ -103,6 +128,11 @@ fn main() {
             let (from, to) = reader.next_tuple();
             println!("Checking reachability {} -> {}: {}", from, to, graph.is_reachable(from, to));
         },
+        "comp" => {
+            let comps = graph.depth_first_search();
+            println!("Connected components: {:?}", comps);
+        },
+        "print" => println!("{:?}", graph),
         _ => println!("Unknown command: {}", command)
     }
 }
