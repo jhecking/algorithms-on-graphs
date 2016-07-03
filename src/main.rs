@@ -1,3 +1,4 @@
+use std::env;
 use std::fs::File;
 use std::io::BufReader;
 use std::io::BufRead;
@@ -61,12 +62,12 @@ impl Graph {
     // depth first search of the graph starting at vertex v
     // marks each vertex visited during the search and returns the list of visited vertices
     fn explore(&self, v: Vertex) -> HashSet<Vertex> {
-        fn visit(adj: &Adjacencies, visited: &mut HashSet<Vertex>, v: Vertex) {
-            visited.insert(v);
-            if let Some(adjacent) = adj.get(&v) {
+        fn visit(adj: &Adjacencies, visited: &mut HashSet<Vertex>, v: &Vertex) {
+            visited.insert(v.clone());
+            if let Some(adjacent) = adj.get(v) {
                 for w in adjacent {
                     if !visited.contains(w) {
-                        visit(adj, visited, w.clone());
+                        visit(adj, visited, w);
                     }
                 }
             }
@@ -74,7 +75,7 @@ impl Graph {
 
         let adj = self.adjacencies();
         let mut visited = HashSet::new();
-        visit(&adj, &mut visited, v);
+        visit(&adj, &mut visited, &v);
         visited
     }
 
@@ -86,11 +87,22 @@ impl Graph {
 }
 
 fn main() {
-    let filename = std::env::args().next().expect("Missing filename!");
+    if env::args().count() != 3 {
+        let main = env::args().next().unwrap();
+        println!("Usage: {} <command> <graph file>", main);
+        std::process::exit(1);
+    }
+    let mut args = env::args();
+    let command = args.nth(1).unwrap();
+    let filename = args.next().unwrap();
     let file = File::open(filename).expect("Cannot open file!");
     let mut reader = BufReader::new(&file);
     let graph = Graph::load(&mut reader);
-    println!("{:?}", graph);
-    let (from, to) = reader.next_tuple();
-    println!("Checking reachability {} -> {}: {}", from, to, graph.is_reachable(from, to));
+    match command.as_ref() {
+        "reach" => {
+            let (from, to) = reader.next_tuple();
+            println!("Checking reachability {} -> {}: {}", from, to, graph.is_reachable(from, to));
+        },
+        _ => println!("Unknown command: {}", command)
+    }
 }
