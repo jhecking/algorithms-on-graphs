@@ -10,8 +10,8 @@ pub type Edge = (Vertex, Vertex);
 // adjacency map contains a list of adjacent vertices for each vertex in the graph
 type Adjacencies = HashMap<Vertex, HashSet<Vertex>>;
 
-// list of connected components
-pub type ConnectedComponents = Vec<Vec<Vertex>>;
+// connected components of a graph
+pub type Component = HashSet<Vertex>;
 
 // a graph consists of a list of edges
 // TODO: how to represent vertices that do not have any edges?
@@ -56,12 +56,12 @@ impl Graph {
 
     // depth first search of the entire graph
     // returns the set of connected components
-    fn depth_first_search(&self) -> ConnectedComponents {
+    fn depth_first_search(&self) -> Vec<Component> {
         let mut components = vec![];
         let mut visited = HashSet::new();
         for v in &self.vertices {
             if !visited.contains(v) {
-                let mut component = vec![];
+                let mut component = HashSet::new();
                 self.explore(v, &mut visited, &mut component);
                 components.push(component);
             }
@@ -71,10 +71,10 @@ impl Graph {
 
     // depth first search of the graph starting at vertex v
     // marks each vertex visited during the search and returns the list of visited vertices
-    fn explore(&self, v: &Vertex, visited: &mut HashSet<Vertex>, component: &mut Vec<Vertex>) {
-        fn visit(v: &Vertex, adj: &Adjacencies, visited: &mut HashSet<Vertex>, component: &mut Vec<Vertex>) {
+    fn explore(&self, v: &Vertex, visited: &mut HashSet<Vertex>, component: &mut Component) {
+        fn visit(v: &Vertex, adj: &Adjacencies, visited: &mut HashSet<Vertex>, component: &mut Component) {
             visited.insert(v.clone());
-            component.push(v.clone());
+            component.insert(v.clone());
             if let Some(adjacent) = adj.get(v) {
                 for w in adjacent {
                     if !visited.contains(w) {
@@ -91,13 +91,13 @@ impl Graph {
     // returns true if vertex w can be reached from vertex v
     pub fn is_reachable(&self, v: Vertex, w: Vertex) -> bool {
         let mut visited = HashSet::new();
-        let mut component = vec![];
+        let mut component = HashSet::new();
         self.explore(&v, &mut visited, &mut component);
         visited.contains(&w)
     }
 
     // returns the connected components for the graph
-    pub fn connected_components(&self) -> ConnectedComponents {
+    pub fn connected_components(&self) -> Vec<Component> {
         self.depth_first_search()
     }
 }
