@@ -19,18 +19,19 @@ pub type Component = HashSet<Vertex>;
 pub struct Graph {
     vertices: HashSet<Vertex>,
     edges: HashSet<Edge>,
+    directed: bool
 }
 
 impl Graph {
 
-    pub fn new(vertices: HashSet<Vertex>, edges: HashSet<Edge>) -> Graph {
-        Graph { vertices: vertices, edges: edges }
+    pub fn new(vertices: HashSet<Vertex>, edges: HashSet<Edge>, directed: bool) -> Graph {
+        Graph { vertices: vertices, edges: edges, directed: directed }
     }
 
     // loads a graph from an input stream:
     // first line contains the number of vertices v and edges e
     // next e lines contain pairs of vertices representing the edges of the graph
-    pub fn load<T: TupleReader>(reader: &mut T) -> Graph {
+    pub fn load<T: TupleReader>(reader: &mut T, directed: bool) -> Graph {
         let (v, e) = reader.next_tuple();
         let vertices = (1..v+1).collect();
         let mut edges = HashSet::new();
@@ -38,7 +39,7 @@ impl Graph {
             let edge = reader.next_tuple();
             edges.insert(edge);
         }
-        Graph::new(vertices, edges)
+        Graph::new(vertices, edges, directed)
     }
 
     // builds the adjacency map for the graph
@@ -49,7 +50,9 @@ impl Graph {
         }
         for edge in &self.edges {
             adj.get_mut(&edge.0).unwrap().insert(edge.1);
-            adj.get_mut(&edge.1).unwrap().insert(edge.0);
+            if !self.directed {
+                adj.get_mut(&edge.1).unwrap().insert(edge.0);
+            }
         }
         adj
     }

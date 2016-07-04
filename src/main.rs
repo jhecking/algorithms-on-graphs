@@ -18,17 +18,21 @@ fn main() {
     let filename = args.next().unwrap();
     let file = File::open(filename).expect("Cannot open file!");
     let mut reader = BufReader::new(&file);
-    let graph = graph::Graph::load(&mut reader);
     match command.as_ref() {
         "reach" => {
+            let graph = graph::Graph::load(&mut reader, false);
             let (from, to) = reader.next_tuple();
             println!("Checking reachability {} -> {}: {}", from, to, graph.is_reachable(from, to));
         },
         "comp" => {
+            let graph = graph::Graph::load(&mut reader, false);
             let comps = graph.connected_components();
             println!("Connected components: {:?}", comps);
         },
-        "print" => println!("{:?}", graph),
+        "print" => {
+            let graph = graph::Graph::load(&mut reader, false);
+            println!("{:?}", graph)
+        },
         _ => println!("Unknown command: {}", command)
     }
 }
