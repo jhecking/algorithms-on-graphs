@@ -3,8 +3,9 @@ use std::collections::HashSet;
 
 use tuple_reader::TupleReader;
 
-// graph vertices are represented as integer numbers
+// basic graph types: vertices & edges
 pub type Vertex = u32;
+pub type Edge = (Vertex, Vertex);
 
 // adjacency map contains a list of adjacent vertices for each vertex in the graph
 type Adjacencies = HashMap<Vertex, HashSet<Vertex>>;
@@ -17,12 +18,12 @@ pub type ConnectedComponents = Vec<Vec<Vertex>>;
 #[derive(Debug)]
 pub struct Graph {
     vertices: HashSet<Vertex>,
-    edges: Vec<(Vertex, Vertex)>,
+    edges: HashSet<Edge>,
 }
 
 impl Graph {
 
-    pub fn new(vertices: HashSet<Vertex>, edges: Vec<(Vertex, Vertex)>) -> Graph {
+    pub fn new(vertices: HashSet<Vertex>, edges: HashSet<Edge>) -> Graph {
         Graph { vertices: vertices, edges: edges }
     }
 
@@ -32,10 +33,10 @@ impl Graph {
     pub fn load<T: TupleReader>(reader: &mut T) -> Graph {
         let (v, e) = reader.next_tuple();
         let vertices = (1..v+1).collect();
-        let mut edges = vec![];
+        let mut edges = HashSet::new();
         for _ in 0..e { 
             let edge = reader.next_tuple();
-            edges.push(edge)
+            edges.insert(edge);
         }
         Graph::new(vertices, edges)
     }
