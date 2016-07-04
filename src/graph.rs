@@ -7,7 +7,7 @@ use tuple_reader::TupleReader;
 pub type Vertex = u32;
 
 // adjacency map contains a list of adjacent vertices for each vertex in the graph
-type Adjacencies = HashMap<Vertex, Vec<Vertex>>;
+type Adjacencies = HashMap<Vertex, HashSet<Vertex>>;
 
 // list of connected components
 pub type ConnectedComponents = Vec<Vec<Vertex>>;
@@ -16,13 +16,13 @@ pub type ConnectedComponents = Vec<Vec<Vertex>>;
 // TODO: how to represent vertices that do not have any edges?
 #[derive(Debug)]
 pub struct Graph {
-    vertices: Vec<Vertex>,
+    vertices: HashSet<Vertex>,
     edges: Vec<(Vertex, Vertex)>,
 }
 
 impl Graph {
 
-    pub fn new(vertices: Vec<Vertex>, edges: Vec<(Vertex, Vertex)>) -> Graph {
+    pub fn new(vertices: HashSet<Vertex>, edges: Vec<(Vertex, Vertex)>) -> Graph {
         Graph { vertices: vertices, edges: edges }
     }
 
@@ -42,12 +42,13 @@ impl Graph {
 
     // builds the adjacency map for the graph
     fn adjacencies(&self) -> Adjacencies {
-        let mut adj: Adjacencies = HashMap::new();
+        let mut adj = HashMap::new();
+        for vertex in &self.vertices {
+            adj.insert(*vertex, HashSet::new());
+        }
         for edge in &self.edges {
-            if !adj.contains_key(&edge.0) {
-                adj.insert(edge.0, vec![]);
-            }
-            adj.get_mut(&edge.0).unwrap().push(edge.1);
+            adj.get_mut(&edge.0).unwrap().insert(edge.1);
+            adj.get_mut(&edge.1).unwrap().insert(edge.0);
         }
         adj
     }
